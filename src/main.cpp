@@ -132,7 +132,7 @@ void matchCurrentFrameBlobsToExistingBlobs(std::vector<Blob> &existingBlobs, std
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool checkIfBlobsCrossedTheLeftLine(std::vector<Blob> &blobs, int &linePosition, int &pedestrianExitingCount, int &pedestrianEnteringCount, int direction) {
+bool checkIfBlobsCrossedLine(std::vector<Blob> &blobs, int &fixedLinePosition, int &startingLinePosition, int &endingLinePosition, int &pedestrianExitingCount, int &pedestrianEnteringCount, int direction) {
     bool blnAtLeastOneBlobCrossedTheLine = false;
 
     for (auto blob : blobs) {
@@ -143,39 +143,50 @@ bool checkIfBlobsCrossedTheLeftLine(std::vector<Blob> &blobs, int &linePosition,
 
             switch( direction ) {
                 case Direction::LEFT:
-                    if (blob.centerPositions[prevFrameIndex].x > linePosition && blob.centerPositions[currFrameIndex].x <= linePosition) {
-                        pedestrianExitingCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
-                    } else if (blob.centerPositions[prevFrameIndex].x <= linePosition && blob.centerPositions[currFrameIndex].x > linePosition){
-                        pedestrianEnteringCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
+                    if (blob.centerPositions[currFrameIndex].y >= startingLinePosition && blob.centerPositions[currFrameIndex].y <= endingLinePosition) { // if touching the line (checking the y)
+                        if (blob.centerPositions[prevFrameIndex].x > fixedLinePosition && blob.centerPositions[currFrameIndex].x <= fixedLinePosition) {    // if going towards left
+                            pedestrianExitingCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        } else if (blob.centerPositions[prevFrameIndex].x <= fixedLinePosition && blob.centerPositions[currFrameIndex].x > fixedLinePosition){  // otherwise going towards right
+                            pedestrianEnteringCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        }
                     }
+                    
                     break;
                 case Direction::RIGHT:
-                    if (blob.centerPositions[prevFrameIndex].x <= linePosition && blob.centerPositions[currFrameIndex].x > linePosition) {
-                        pedestrianExitingCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
-                    } else if (blob.centerPositions[prevFrameIndex].x > linePosition && blob.centerPositions[currFrameIndex].x <= linePosition){
-                        pedestrianEnteringCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
+                    if (blob.centerPositions[currFrameIndex].y >= startingLinePosition && blob.centerPositions[currFrameIndex].y <= endingLinePosition) {    
+                        if (blob.centerPositions[prevFrameIndex].x <= fixedLinePosition && blob.centerPositions[currFrameIndex].x > fixedLinePosition) {
+                            pedestrianExitingCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        } else if (blob.centerPositions[prevFrameIndex].x > fixedLinePosition && blob.centerPositions[currFrameIndex].x <= fixedLinePosition){
+                            pedestrianEnteringCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        }
                     }
+                    
                     break;
                 case Direction::UP:
-                    if (blob.centerPositions[prevFrameIndex].y > linePosition && blob.centerPositions[currFrameIndex].y <= linePosition) {
-                        pedestrianExitingCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
-                    } else if (blob.centerPositions[prevFrameIndex].x <= linePosition && blob.centerPositions[currFrameIndex].x > linePosition){
-                        pedestrianEnteringCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
+                    if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition) {
+                        if (blob.centerPositions[prevFrameIndex].y > fixedLinePosition && blob.centerPositions[currFrameIndex].y <= fixedLinePosition) {
+                            pedestrianExitingCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        } else if (blob.centerPositions[prevFrameIndex].x <= fixedLinePosition && blob.centerPositions[currFrameIndex].x > fixedLinePosition){
+                            pedestrianEnteringCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        }
                     }
+                    
                     break;
                 case Direction::DOWN:
-                    if (blob.centerPositions[prevFrameIndex].y <= linePosition && blob.centerPositions[currFrameIndex].y > linePosition) {
-                        pedestrianExitingCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
-                    } else if (blob.centerPositions[prevFrameIndex].y > linePosition && blob.centerPositions[currFrameIndex].y <= linePosition){
-                        pedestrianEnteringCount++;
-                        blnAtLeastOneBlobCrossedTheLine = true;
+                    if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition) {
+                        if (blob.centerPositions[prevFrameIndex].y <= fixedLinePosition && blob.centerPositions[currFrameIndex].y > fixedLinePosition) {
+                            pedestrianExitingCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        } else if (blob.centerPositions[prevFrameIndex].y > fixedLinePosition && blob.centerPositions[currFrameIndex].y <= fixedLinePosition){
+                            pedestrianEnteringCount++;
+                            blnAtLeastOneBlobCrossedTheLine = true;
+                        }
                     }
                     break;
                 default:
@@ -399,10 +410,10 @@ int main() {
 
         bool blnAtLeastOneBlobCrossedTheLine = false;
 
-        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedTheLeftLine(blobs, leftLine[0].x, pedestrianExitingLeftCount, pedestrianEnteringLeftCount, Direction::LEFT);
-        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedTheLeftLine(blobs, leftLine[0].x, pedestrianExitingRightCount, pedestrianEnteringRightCount, Direction::RIGHT);
-        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedTheLeftLine(blobs, leftLine[0].x, pedestrianExitingUpperCount, pedestrianEnteringUpperCount, Direction::UP);
-        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedTheLeftLine(blobs, leftLine[0].x, pedestrianExitingLowerCount, pedestrianEnteringLowerCount, Direction::DOWN);
+        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedLine(blobs, leftLine[0].x, leftLine[0].y, leftLine[1].y, pedestrianExitingLeftCount, pedestrianEnteringLeftCount, Direction::LEFT);
+        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedLine(blobs, rightLine[0].x, rightLine[0].y, rightLine[1].y, pedestrianExitingRightCount, pedestrianEnteringRightCount, Direction::RIGHT);
+        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedLine(blobs, upperLine[0].y, upperLine[0].x, upperLine[1].x, pedestrianExitingUpperCount, pedestrianEnteringUpperCount, Direction::UP);
+        blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedLine(blobs, lowerLine[0].y, lowerLine[0].x, lowerLine[1].x, pedestrianExitingLowerCount, pedestrianEnteringLowerCount, Direction::DOWN);
 
         drawPedestrianCountOnImage(pedestrianExitingLeftCount, pedestrianEnteringLeftCount, imgFrameCopy, Direction::LEFT);
         drawPedestrianCountOnImage(pedestrianExitingRightCount, pedestrianEnteringRightCount, imgFrameCopy, Direction::RIGHT);
