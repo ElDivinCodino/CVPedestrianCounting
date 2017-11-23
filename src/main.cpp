@@ -189,20 +189,54 @@ bool checkIfBlobsCrossedTheLeftLine(std::vector<Blob> &blobs, int &linePosition,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void drawPedestrianCountOnImage(int &pedestrianCount, cv::Mat &imgFrameCopy) {
+void drawPedestrianCountOnImage(int &pedestrianExitingCount, int &pedestrianEnteringCount, cv::Mat &imgFrame, int direction) {
 
     int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
-    double dblFontScale = (imgFrameCopy.rows * imgFrameCopy.cols) / 3000000.0;
+    double dblFontScale = (imgFrame.rows * imgFrame.cols) / 2000000.0;
     int intFontThickness = (int)std::round(dblFontScale * 1.5);
 
-    cv::Size textSize = cv::getTextSize(std::to_string(pedestrianCount), intFontFace, dblFontScale, intFontThickness, 0);
+    cv::Point ptTextPosition;
 
-    cv::Point ptTextBottomLeftPosition;
+    switch( direction ) {
+        case Direction::LEFT:
+            ptTextPosition.x = imgFrame.size().width/20;
+            ptTextPosition.y = imgFrame.size().height*1/3;
 
-    ptTextBottomLeftPosition.x = imgFrameCopy.cols - 1 - (int)((double)textSize.width * 1.25);
-    ptTextBottomLeftPosition.y = (int)((double)textSize.height * 1.25);
+            cv::putText(imgFrame, "Entering: " + std::to_string(pedestrianEnteringCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
 
-    cv::putText(imgFrameCopy, std::to_string(pedestrianCount), ptTextBottomLeftPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
+            ptTextPosition.y += imgFrame.size().height*1/20;
+            cv::putText(imgFrame, "Exiting: " + std::to_string(pedestrianExitingCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_RED, intFontThickness);
+            break;
+        case Direction::RIGHT:
+            ptTextPosition.x = imgFrame.size().width*11/15;
+            ptTextPosition.y = imgFrame.size().height*2/5;
+
+            cv::putText(imgFrame, "Entering: " + std::to_string(pedestrianEnteringCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
+
+            ptTextPosition.y += imgFrame.size().height*1/20;
+            cv::putText(imgFrame, "Exiting: " + std::to_string(pedestrianExitingCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_RED, intFontThickness);
+            break;
+        case Direction::UP:
+            ptTextPosition.x = imgFrame.size().width*11/15;
+            ptTextPosition.y = imgFrame.size().height*1/5;
+
+            cv::putText(imgFrame, "Entering: " + std::to_string(pedestrianEnteringCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
+
+            ptTextPosition.y += imgFrame.size().height*1/20;
+            cv::putText(imgFrame, "Exiting: " + std::to_string(pedestrianExitingCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_RED, intFontThickness);
+            break;
+        case Direction::DOWN:
+            ptTextPosition.x = imgFrame.size().width*1/9;
+            ptTextPosition.y = imgFrame.size().height*9/10;
+
+            cv::putText(imgFrame, "Entering: " + std::to_string(pedestrianEnteringCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
+
+            ptTextPosition.y += imgFrame.size().height*1/20;
+            cv::putText(imgFrame, "Exiting: " + std::to_string(pedestrianExitingCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_RED, intFontThickness);
+            break;
+        default:
+            break;
+    }
 
 }
 
@@ -245,29 +279,29 @@ int main() {
 
     // Left lines
     //int intHorizontalLinePosition = (int)std::round((double)imgFrame.rows * 0.35);
-    leftLine[0].x = 40;
+    leftLine[0].x = imgFrame.size().width/20;
     leftLine[0].y = imgFrame.size().height*3/7;
-    leftLine[1].x = 40;
+    leftLine[1].x = imgFrame.size().width/20;
     leftLine[1].y = imgFrame.size().height*2/3;
 
     
     // Right line 
-    rightLine[0].x = imgFrame.size().width - 40;
+    rightLine[0].x = imgFrame.size().width*19/20;
     rightLine[0].y = imgFrame.size().height*4/9;
-    rightLine[1].x = imgFrame.size().width - 40;
+    rightLine[1].x = imgFrame.size().width*19/20;
     rightLine[1].y = imgFrame.size().height*4/7;
 
     // Upper lines 
     upperLine[0].x = imgFrame.size().width/3;
-    upperLine[0].y = 40;
+    upperLine[0].y = imgFrame.size().height*1/5;
     upperLine[1].x = imgFrame.size().width*2/3;
-    upperLine[1].y = 40;
+    upperLine[1].y = imgFrame.size().height*1/5;
 
     // Lower line 
     lowerLine[0].x = imgFrame.size().width/3;
-    lowerLine[0].y = imgFrame.size().height - 40;
+    lowerLine[0].y = imgFrame.size().height*19/20;
     lowerLine[1].x = imgFrame.size().width*4/7;
-    lowerLine[1].y = imgFrame.size().height - 40;
+    lowerLine[1].y = imgFrame.size().height*19/20;
 
     char chCheckForEscKey = 0;
     bool blnFirstFrame = true;
@@ -370,14 +404,10 @@ int main() {
         blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedTheLeftLine(blobs, leftLine[0].x, pedestrianExitingUpperCount, pedestrianEnteringUpperCount, Direction::UP);
         blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedTheLeftLine(blobs, leftLine[0].x, pedestrianExitingLowerCount, pedestrianEnteringLowerCount, Direction::DOWN);
 
-        drawPedestrianCountOnImage(pedestrianExitingLeftCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianEnteringLeftCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianExitingRightCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianEnteringRightCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianExitingUpperCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianEnteringUpperCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianExitingLowerCount, imgFrameCopy);
-        drawPedestrianCountOnImage(pedestrianEnteringLowerCount, imgFrameCopy);        
+        drawPedestrianCountOnImage(pedestrianExitingLeftCount, pedestrianEnteringLeftCount, imgFrameCopy, Direction::LEFT);
+        drawPedestrianCountOnImage(pedestrianExitingRightCount, pedestrianEnteringRightCount, imgFrameCopy, Direction::RIGHT);
+        drawPedestrianCountOnImage(pedestrianExitingUpperCount, pedestrianEnteringUpperCount, imgFrameCopy, Direction::UP);
+        drawPedestrianCountOnImage(pedestrianExitingLowerCount, pedestrianEnteringLowerCount, imgFrameCopy, Direction::DOWN);
 
         cv::line(imgFrameCopy, leftLine[0], leftLine[1], SCALAR_RED, 2);
         cv::line(imgFrameCopy, rightLine[0], rightLine[1], SCALAR_RED, 2);
