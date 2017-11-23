@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -g -Wall -std=c++11
-SRCS = src/Blob.cpp src/hog.cpp src/main.cpp
+SRCS = src/Blob.cpp src/main.cpp
 PROG = main
 
 OPENCV = $(shell pkg-config opencv --cflags --libs)
