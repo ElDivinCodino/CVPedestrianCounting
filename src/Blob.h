@@ -15,6 +15,8 @@ public:
 
     cv::Rect currentBoundingRect;
 
+    cv::Point currentCenter;
+    
     std::vector<cv::Point> centerPositions;
 
     double dblCurrentDiagonalSize;

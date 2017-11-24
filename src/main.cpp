@@ -1,4 +1,5 @@
 #include "main.hpp"
+#include "bgslibrary.h"
 #include "Blob.h"
 
 #define N_GATES 4
@@ -36,18 +37,19 @@ void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingB
     existingBlobs[intIndex].blnCurrentMatchFoundOrNewBlob = true;
 }
 
-void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrame2Copy) {
+void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrameCopy) {
 
     for (unsigned int i = 0; i < blobs.size(); i++) {
 
         if (blobs[i].blnStillBeingTracked == true) {
-            cv::rectangle(imgFrame2Copy, blobs[i].currentBoundingRect, SCALAR_RED, 2);
+            cv::rectangle(imgFrameCopy, blobs[i].currentBoundingRect, SCALAR_RED, 2);
 
+            /*
             int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
             double dblFontScale = blobs[i].dblCurrentDiagonalSize / 60.0;
             int intFontThickness = (int)std::round(dblFontScale * 1.0);
 
-            cv::putText(imgFrame2Copy, std::to_string(i), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
+            cv::putText(imgFrameCopy, std::to_string(i), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);*/
         }
     }
 }
@@ -137,7 +139,7 @@ bool checkIfBlobsCrossedLine(std::vector<Blob> &blobs, int &fixedLinePosition, i
 
     for (auto blob : blobs) {
 
-        if (blob.blnStillBeingTracked == true && blob.centerPositions.size() >= 2) {
+        if (blob.blnStillBeingTracked == true && blob.centerPositions.size() >= 3) {    // >= 3 in order to avoid noise
             int prevFrameIndex = (int)blob.centerPositions.size() - 2;
             int currFrameIndex = (int)blob.centerPositions.size() - 1;
 
@@ -317,22 +319,22 @@ int main() {
     char chCheckForEscKey = 0;
     bool blnFirstFrame = true;
     int frameCount = 0;
-    int historyLength = 3;
 
     Ptr<BackgroundSubtractor> pMOG; // pointer to Mixture Of Gaussian BG subtractor
     double learning_rate = 0.1;
-    pMOG = createBackgroundSubtractorMOG2(500, 25, false);
+    pMOG = createBackgroundSubtractorMOG2(100, 30, false);
 
-    Mat maskHistory[historyLength];
+    IBGS *bgs;
+    bgs = new AdaptiveBackgroundLearning;
 
-    while (capVideo.isOpened() && chCheckForEscKey != 27)
-    {
+    while (capVideo.isOpened() && chCheckForEscKey != 27) {
+
         std::vector<Blob> currentFrameBlobs;
 
         // Clone the first frame
         cv::Mat imgFrameCopy = imgFrame.clone();
 
-        cv::Mat imgDifference, imgThresh, mask;
+        cv::Mat imgDifference, imgThresh, mask, mask1, backgroundModel;
 
         // Conver to YUV     
         cv::cvtColor(imgFrameCopy, imgFrameCopy, CV_BGR2YUV);
@@ -342,24 +344,21 @@ int main() {
         imgFrameCopy = channels[0];
         //imgFrame1Copy.convertTo(imgFrame1Copy, -1, 2, 0); //increase the contrast
 
-        pMOG -> apply(imgFrameCopy, mask, learning_rate);
+        //pMOG -> apply(imgFrameCopy, mask1, learning_rate);
 
-        maskHistory[frameCount % historyLength] = mask;
-        
+        bgs -> process(imgFrameCopy, mask, backgroundModel);
+
         // Define structuring elements
-        cv::Mat structuringElement15x15 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(15, 15));
+        cv::Mat structuringElement5x5 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+        
+        // Apply a opening operation
+        cv::morphologyEx(mask, mask, cv::MORPH_OPEN, structuringElement5x5);
 
         // Apply a closing operation
-        cv::morphologyEx(mask, mask, cv::MORPH_CLOSE, structuringElement15x15);
+        //cv::morphologyEx(mask1, mask1, cv::MORPH_CLOSE, structuringElement5x5);
         
         // Copy the image
         cv::Mat imgThreshCopy = mask.clone();
-
-        if (frameCount > historyLength) {
-            for(int i = 0; i < historyLength; i++) {
-                imgThreshCopy += maskHistory[i];
-            }
-        }
 
         // Find contours
         std::vector<std::vector<cv::Point> > contours;
@@ -406,7 +405,7 @@ int main() {
 
         drawAndShowContours(imgThresh.size(), blobs, "imgBlobs");
 
-        drawBlobInfoOnImage(blobs, imgFrameCopy);
+        drawBlobInfoOnImage(blobs, imgFrame);
 
         bool blnAtLeastOneBlobCrossedTheLine = false;
 
@@ -415,18 +414,20 @@ int main() {
         blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedLine(blobs, upperLine[0].y, upperLine[0].x, upperLine[1].x, pedestrianExitingUpperCount, pedestrianEnteringUpperCount, Direction::UP);
         blnAtLeastOneBlobCrossedTheLine ^= checkIfBlobsCrossedLine(blobs, lowerLine[0].y, lowerLine[0].x, lowerLine[1].x, pedestrianExitingLowerCount, pedestrianEnteringLowerCount, Direction::DOWN);
 
-        drawPedestrianCountOnImage(pedestrianExitingLeftCount, pedestrianEnteringLeftCount, imgFrameCopy, Direction::LEFT);
-        drawPedestrianCountOnImage(pedestrianExitingRightCount, pedestrianEnteringRightCount, imgFrameCopy, Direction::RIGHT);
-        drawPedestrianCountOnImage(pedestrianExitingUpperCount, pedestrianEnteringUpperCount, imgFrameCopy, Direction::UP);
-        drawPedestrianCountOnImage(pedestrianExitingLowerCount, pedestrianEnteringLowerCount, imgFrameCopy, Direction::DOWN);
+        drawPedestrianCountOnImage(pedestrianExitingLeftCount, pedestrianEnteringLeftCount, imgFrame, Direction::LEFT);
+        drawPedestrianCountOnImage(pedestrianExitingRightCount, pedestrianEnteringRightCount, imgFrame, Direction::RIGHT);
+        drawPedestrianCountOnImage(pedestrianExitingUpperCount, pedestrianEnteringUpperCount, imgFrame, Direction::UP);
+        drawPedestrianCountOnImage(pedestrianExitingLowerCount, pedestrianEnteringLowerCount, imgFrame, Direction::DOWN);
 
-        cv::line(imgFrameCopy, leftLine[0], leftLine[1], SCALAR_RED, 2);
-        cv::line(imgFrameCopy, rightLine[0], rightLine[1], SCALAR_RED, 2);
-        cv::line(imgFrameCopy, upperLine[0], upperLine[1], SCALAR_RED, 2);
-        cv::line(imgFrameCopy, lowerLine[0], lowerLine[1], SCALAR_RED, 2);
+        cv::line(imgFrame, leftLine[0], leftLine[1], SCALAR_RED, 2);
+        cv::line(imgFrame, rightLine[0], rightLine[1], SCALAR_RED, 2);
+        cv::line(imgFrame, upperLine[0], upperLine[1], SCALAR_RED, 2);
+        cv::line(imgFrame, lowerLine[0], lowerLine[1], SCALAR_RED, 2);
 
-        cv::resize(imgFrameCopy, imgFrameCopy, cv::Size(), 0.5, 0.5);
-        cv::imshow("imgFrameCopy", imgFrameCopy);
+        cv::resize(imgFrame, imgFrame, cv::Size(), 0.3, 0.3);
+        cv::imshow("imgFrame", imgFrame);
+        cv::resize(mask, mask, cv::Size(), 0.3, 0.3);
+        cv::imshow("mask", mask);
         
         if ((capVideo.get(CV_CAP_PROP_POS_FRAMES) + 1) < capVideo.get(CV_CAP_PROP_FRAME_COUNT)) {
             capVideo.read(imgFrame);
