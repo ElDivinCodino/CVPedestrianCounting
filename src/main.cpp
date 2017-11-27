@@ -46,10 +46,10 @@ void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrameCopy) {
 
             
             int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
-            double dblFontScale = blobs[i].dblCurrentDiagonalSize / 60.0;
+            double dblFontScale = blobs[i].dblCurrentDiagonalSize / 20.0;
             int intFontThickness = (int)std::round(dblFontScale * 1.0);
 
-            cv::putText(imgFrameCopy, std::to_string(i), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
+            cv::putText(imgFrameCopy, std::to_string(blobs[i].counted), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
         }
     }
 }
@@ -146,7 +146,7 @@ void matchCurrentFrameBlobsToExistingBlobs(std::vector<Blob> &existingBlobs, std
 bool checkIfBlobsCrossedLine(std::vector<Blob> &blobs, int &fixedLinePosition, int &startingLinePosition, int &endingLinePosition, int &pedestrianExitingCount, int &pedestrianEnteringCount, int direction) {
     bool blnAtLeastOneBlobCrossedTheLine = false;
 
-    for (auto blob : blobs) {
+    for (auto &blob : blobs) {
 
         if (blob.blnStillBeingTracked == true && blob.centerPositions.size() >= 3) {    // >= 3 in order to avoid noise
             int prevFrameIndex = (int)blob.centerPositions.size() - 2;
@@ -154,57 +154,59 @@ bool checkIfBlobsCrossedLine(std::vector<Blob> &blobs, int &fixedLinePosition, i
 
             switch( direction ) {
                 case Direction::LEFT:
-                    if (blob.centerPositions[currFrameIndex].y >= startingLinePosition && blob.centerPositions[currFrameIndex].y <= endingLinePosition && blob.counted != 0) { // if touching the line (checking the y)
+                    if (blob.centerPositions[currFrameIndex].y >= startingLinePosition && blob.centerPositions[currFrameIndex].y <= endingLinePosition && blob.counted != 1) { // if touching the line (checking the y)
                         if (blob.centerPositions[prevFrameIndex].x > fixedLinePosition && blob.centerPositions[currFrameIndex].x <= fixedLinePosition) {    // if going towards left
                             pedestrianExitingCount++;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 0;
+                            blob.counted = 1;
                         } else if (blob.centerPositions[prevFrameIndex].x < fixedLinePosition && blob.centerPositions[currFrameIndex].x >= fixedLinePosition){  // otherwise going towards right
                             pedestrianEnteringCount++;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 0;
+                            blob.counted = 1;
                         }
                     }
                     
                     break;
                 case Direction::RIGHT:
-                    if (blob.centerPositions[currFrameIndex].y >= startingLinePosition && blob.centerPositions[currFrameIndex].y <= endingLinePosition && blob.counted != 1) {    
+                    if (blob.centerPositions[currFrameIndex].y >= startingLinePosition && blob.centerPositions[currFrameIndex].y <= endingLinePosition && blob.counted != 2) {    
                         if (blob.centerPositions[prevFrameIndex].x < fixedLinePosition && blob.centerPositions[currFrameIndex].x >= fixedLinePosition) {
                             pedestrianExitingCount++;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 1;
+                            blob.counted = 2;
                         } else if (blob.centerPositions[prevFrameIndex].x > fixedLinePosition && blob.centerPositions[currFrameIndex].x <= fixedLinePosition){
                             pedestrianEnteringCount++;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 1;
+                            blob.counted = 2;
                         }
                     }
                     
                     break;
                 case Direction::UP:
-                    if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition && blob.counted != 2) {
+                    if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition && blob.counted != 3) {
                         if (blob.centerPositions[prevFrameIndex].y > fixedLinePosition && blob.centerPositions[currFrameIndex].y <= fixedLinePosition) {
                             pedestrianExitingCount++;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 2;
-                        } else if (blob.centerPositions[prevFrameIndex].x < fixedLinePosition && blob.centerPositions[currFrameIndex].x >= fixedLinePosition){
+                            blob.counted = 3;
+                        } else if (blob.centerPositions[prevFrameIndex].y < fixedLinePosition && blob.centerPositions[currFrameIndex].y >= fixedLinePosition){
                             pedestrianEnteringCount++;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 2;
+                            blob.counted = 3;
                         }
                     }
                     
                     break;
                 case Direction::DOWN:
-                    if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition && blob.counted != 3) {
+                    if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition && blob.counted != 4) {
                         if (blob.centerPositions[prevFrameIndex].y < fixedLinePosition && blob.centerPositions[currFrameIndex].y >= fixedLinePosition) {
                             pedestrianExitingCount++;
+                            std::cout << "EXITING! prev: " + std::to_string(blob.centerPositions[prevFrameIndex].y) + "\n current: " + std::to_string(blob.centerPositions[currFrameIndex].y) << endl;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 3;
+                            blob.counted = 4;
                         } else if (blob.centerPositions[prevFrameIndex].y > fixedLinePosition && blob.centerPositions[currFrameIndex].y <= fixedLinePosition){
                             pedestrianEnteringCount++;
+                            std::cout << "ENTERING! prev: " + std::to_string(blob.centerPositions[prevFrameIndex].y) + "\n current: " + std::to_string(blob.centerPositions[currFrameIndex].y) << endl;
                             blnAtLeastOneBlobCrossedTheLine = true;
-                            blob.counted = 3;
+                            blob.counted = 4;
                         }
                     }
 
@@ -433,8 +435,6 @@ int main() {
         drawAndShowContours(imgThresh.size(), blobs, "imgBlobs");
 
         drawBlobInfoOnImage(blobs, imgFrame);
-
-        std::cout << blobs.size() << endl;
 
         bool blnAtLeastOneBlobCrossedTheLine = false;
 

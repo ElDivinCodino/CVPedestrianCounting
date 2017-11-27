@@ -26,7 +26,7 @@ public:
 
     bool blnStillBeingTracked;
 
-    int counted; // 0 == left, 1 == right, 2 == up, 3 == down
+    int counted; // 1 == left, 2 == right, 3 == up, 4 == down
 
     int intNumOfConsecutiveFramesWithoutAMatch;
 
