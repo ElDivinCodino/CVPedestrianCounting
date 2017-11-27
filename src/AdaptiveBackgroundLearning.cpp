@@ -22,7 +22,7 @@ AdaptiveBackgroundLearning::AdaptiveBackgroundLearning() :
   alpha(0.05), limit(-1), counter(0), minVal(0.0), maxVal(1.0),
   enableThreshold(true), threshold(15)
 {
-  std::cout << "AdaptiveBackgroundLearning()" << std::endl;
+  //std::cout << "AdaptiveBackgroundLearning()" << std::endl;
   //setup("./config/AdaptiveBackgroundLearning.xml");
 }
 
