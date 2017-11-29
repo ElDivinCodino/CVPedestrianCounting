@@ -20,7 +20,7 @@ using namespace bgslibrary::algorithms;
 
 AdaptiveBackgroundLearning::AdaptiveBackgroundLearning() :
   alpha(0.05), limit(-1), counter(0), minVal(0.0), maxVal(1.0),
-  enableThreshold(true), threshold(15)
+  enableThreshold(true), threshold(17)
 {
   //std::cout << "AdaptiveBackgroundLearning()" << std::endl;
   //setup("./config/AdaptiveBackgroundLearning.xml");

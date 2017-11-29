@@ -9,8 +9,6 @@ Blob::Blob(std::vector<cv::Point> _contour) {
 
     currentBoundingRect = cv::boundingRect(currentContour);
 
-    cv::Point currentCenter;
-
     currentCenter.x = (currentBoundingRect.x + currentBoundingRect.x + currentBoundingRect.width) / 2;
     currentCenter.y = (currentBoundingRect.y + currentBoundingRect.y + currentBoundingRect.height) / 2;
 
@@ -24,6 +22,8 @@ Blob::Blob(std::vector<cv::Point> _contour) {
     blnCurrentMatchFoundOrNewBlob = true;
 
     intNumOfConsecutiveFramesWithoutAMatch = 0;
+
+    counted = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

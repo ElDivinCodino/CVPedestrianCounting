@@ -14,13 +14,13 @@ const cv::Scalar SCALAR_RED = cv::Scalar(0.0, 0.0, 255.0);
 
 enum Direction { RIGHT, LEFT, UP, DOWN };
 
+int historySize = 10;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void drawAndShowContours(cv::Size imageSize, std::vector<std::vector<cv::Point> > contours, std::string strImageName) {
     cv::Mat image(imageSize, CV_8UC3, SCALAR_BLACK);
 
     cv::drawContours(image, contours, -1, SCALAR_WHITE, -1);
-
-    //cv::imshow(strImageName, image);
 }
 
 void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex) {
@@ -43,13 +43,6 @@ void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrameCopy) {
 
         if (blobs[i].blnStillBeingTracked == true) {
             cv::rectangle(imgFrameCopy, blobs[i].currentBoundingRect, SCALAR_RED, 2);
-
-            
-            int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
-            double dblFontScale = blobs[i].dblCurrentDiagonalSize / 20.0;
-            int intFontThickness = (int)std::round(dblFontScale * 1.0);
-
-            cv::putText(imgFrameCopy, std::to_string(blobs[i].counted), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
         }
     }
 }
@@ -68,8 +61,6 @@ void drawAndShowContours(cv::Size imageSize, std::vector<Blob> blobs, std::strin
     }
 
     cv::drawContours(image, contours, -1, SCALAR_WHITE, -1);
-
-    //cv::imshow(strImageName, image);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,8 +139,16 @@ bool checkIfBlobsCrossedLine(std::vector<Blob> &blobs, int &fixedLinePosition, i
 
     for (auto &blob : blobs) {
 
-        if (blob.blnStillBeingTracked == true && blob.centerPositions.size() >= 3) {    // >= 3 in order to avoid noise
-            int prevFrameIndex = (int)blob.centerPositions.size() - 2;
+        if (blob.blnStillBeingTracked == true && blob.centerPositions.size() >= 2) {    // >= 2 in order to avoid noise
+            
+            int prevFrameIndex;
+
+            if ((int)blob.centerPositions.size() > historySize) {
+                prevFrameIndex = (int)blob.centerPositions.size() - historySize;
+            } else {
+                prevFrameIndex = 0;
+            }
+            
             int currFrameIndex = (int)blob.centerPositions.size() - 1;
 
             switch( direction ) {
@@ -199,12 +198,10 @@ bool checkIfBlobsCrossedLine(std::vector<Blob> &blobs, int &fixedLinePosition, i
                     if (blob.centerPositions[currFrameIndex].x >= startingLinePosition && blob.centerPositions[currFrameIndex].x <= endingLinePosition && blob.counted != 4) {
                         if (blob.centerPositions[prevFrameIndex].y < fixedLinePosition && blob.centerPositions[currFrameIndex].y >= fixedLinePosition) {
                             pedestrianExitingCount++;
-                            std::cout << "EXITING! prev: " + std::to_string(blob.centerPositions[prevFrameIndex].y) + "\n current: " + std::to_string(blob.centerPositions[currFrameIndex].y) << endl;
                             blnAtLeastOneBlobCrossedTheLine = true;
                             blob.counted = 4;
                         } else if (blob.centerPositions[prevFrameIndex].y > fixedLinePosition && blob.centerPositions[currFrameIndex].y <= fixedLinePosition){
                             pedestrianEnteringCount++;
-                            std::cout << "ENTERING! prev: " + std::to_string(blob.centerPositions[prevFrameIndex].y) + "\n current: " + std::to_string(blob.centerPositions[currFrameIndex].y) << endl;
                             blnAtLeastOneBlobCrossedTheLine = true;
                             blob.counted = 4;
                         }
@@ -233,7 +230,7 @@ void drawPedestrianCountOnImage(int &pedestrianExitingCount, int &pedestrianEnte
 
     switch( direction ) {
         case Direction::LEFT:
-            ptTextPosition.x = imgFrame.size().width*3/40;
+            ptTextPosition.x = imgFrame.size().width*1/40;
             ptTextPosition.y = imgFrame.size().height*1/3;
 
             cv::putText(imgFrame, "Entering: " + std::to_string(pedestrianEnteringCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
@@ -252,7 +249,7 @@ void drawPedestrianCountOnImage(int &pedestrianExitingCount, int &pedestrianEnte
             break;
         case Direction::UP:
             ptTextPosition.x = imgFrame.size().width*11/15;
-            ptTextPosition.y = imgFrame.size().height*1/5;
+            ptTextPosition.y = imgFrame.size().height*1/9;
 
             cv::putText(imgFrame, "Entering: " + std::to_string(pedestrianEnteringCount), ptTextPosition, intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
 
@@ -312,23 +309,23 @@ int main() {
     capVideo.read(imgFrame);
 
     // Left lines
-    leftLine[0].x = imgFrame.size().width*3/40;
+    leftLine[0].x = imgFrame.size().width*1/20;
     leftLine[0].y = imgFrame.size().height*3/7;
-    leftLine[1].x = imgFrame.size().width*3/40;
+    leftLine[1].x = imgFrame.size().width*1/20;
     leftLine[1].y = imgFrame.size().height*2/3;
 
     
     // Right line 
-    rightLine[0].x = imgFrame.size().width*19/20;
+    rightLine[0].x = imgFrame.size().width*9/10;
     rightLine[0].y = imgFrame.size().height*4/9;
-    rightLine[1].x = imgFrame.size().width*19/20;
+    rightLine[1].x = imgFrame.size().width*9/10;
     rightLine[1].y = imgFrame.size().height*4/7;
 
     // Upper lines 
     upperLine[0].x = imgFrame.size().width/3;
-    upperLine[0].y = imgFrame.size().height*1/5;
+    upperLine[0].y = imgFrame.size().height*1/9;
     upperLine[1].x = imgFrame.size().width*2/3;
-    upperLine[1].y = imgFrame.size().height*1/5;
+    upperLine[1].y = imgFrame.size().height*1/9;
 
     // Lower line 
     lowerLine[0].x = imgFrame.size().width/3;
@@ -339,10 +336,6 @@ int main() {
     char chCheckForEscKey = 0;
     bool blnFirstFrame = true;
     int frameCount = 0;
-
-    Ptr<BackgroundSubtractor> pMOG; // pointer to Mixture Of Gaussian BG subtractor
-    double learning_rate = 0.1;
-    pMOG = createBackgroundSubtractorMOG2(100, 30, false);
 
     IBGS *bgs;
     bgs = new AdaptiveBackgroundLearning;
@@ -360,31 +353,24 @@ int main() {
         cv::cvtColor(imgFrameCopy, imgFrameCopy, CV_BGR2YUV);
 
         Mat channels[3];
-        split( imgFrameCopy, channels );
+        split(imgFrameCopy, channels);
         imgFrameCopy = channels[0];
 
-        //pMOG -> apply(imgFrameCopy, mask1, learning_rate);
-        //cv::medianBlur(imgFrameCopy, mask, 5);
-
+        // Process the Adaptive Background Learning
         bgs -> process(imgFrameCopy, mask, backgroundModel);
 
-        //cv::absdiff(backgroundModel, mask, mask);
-
         // Define structuring elements
+        cv::Mat structuringElement3x3 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
         cv::Mat structuringElement5x5 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
-        cv::Mat structuringElement7x7 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(19, 19));
+        cv::Mat structuringElement19x19 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(19, 19));
         
-        // Apply a opening operation
-        //cv::morphologyEx(mask, mask, cv::MORPH_CLOSE, structuringElement7x7);
-        cv::erode(mask, mask, structuringElement5x5);
-        cv::dilate(mask, mask, structuringElement7x7);        
-        //cv::dilate(mask, mask, structuringElement7x7);
-        //cv::dilate(mask, mask, structuringElement7x7);
-
-        //cv::morphologyEx(mask, mask, cv::MORPH_OPEN, structuringElement15x15);
+        // Apply erosion in order to eliminate the noise, and dilation to increase the blobs
+        cv::erode(mask, mask, structuringElement3x3);
+        cv::erode(mask, mask, structuringElement3x3);
+        cv::dilate(mask, mask, structuringElement19x19);
 
         // Apply a closing operation
-        //cv::morphologyEx(mask1, mask1, cv::MORPH_CLOSE, structuringElement5x5);
+        cv::morphologyEx(mask, mask, cv::MORPH_CLOSE, structuringElement5x5);
         
         // Copy the image
         cv::Mat imgThreshCopy = mask.clone();
@@ -462,6 +448,14 @@ int main() {
             capVideo.read(imgFrame);
         } else {
             std::cout << "End of video\n";
+            std::cout << "Entering from north: " + std::to_string(pedestrianEnteringUpperCount) + "\n" << endl;
+            std::cout << "Exiting from north: " + std::to_string(pedestrianExitingUpperCount) + "\n\n" << endl;
+            std::cout << "Entering from left: " + std::to_string(pedestrianEnteringLeftCount) + "\n" << endl;
+            std::cout << "Exiting from left: " + std::to_string(pedestrianExitingLeftCount) + "\n\n" << endl;
+            std::cout << "Entering from right: " + std::to_string(pedestrianEnteringRightCount) + "\n" << endl;
+            std::cout << "Exiting from right: " + std::to_string(pedestrianExitingRightCount) + "\n\n" << endl;
+            std::cout << "Entering from south: " + std::to_string(pedestrianEnteringLowerCount) + "\n" << endl;
+            std::cout << "Exiting from south: " + std::to_string(pedestrianExitingLowerCount) + "\n\n" << endl;
             break;
         }
 
