@@ -43,6 +43,12 @@ void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrameCopy) {
 
         if (blobs[i].blnStillBeingTracked == true) {
             cv::rectangle(imgFrameCopy, blobs[i].currentBoundingRect, SCALAR_RED, 2);
+
+            int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
+            double dblFontScale = 2.0;
+            int intFontThickness = (int)std::round(dblFontScale * 1.0);
+
+            cv::putText(imgFrameCopy, std::to_string(blobs[i].centerPositions.size()), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
         }
     }
 }
@@ -119,10 +125,20 @@ void matchCurrentFrameBlobsToExistingBlobs(std::vector<Blob> &existingBlobs, std
 
     }
 
-    for (auto &existingBlob : existingBlobs) {
+    int index = -1;
 
-        if (existingBlob.blnCurrentMatchFoundOrNewBlob == false) {
+    for (auto &existingBlob : existingBlobs) {
+        
+        index++;
+
+        if (existingBlob.blnCurrentMatchFoundOrNewBlob == false && existingBlob.blnStillBeingTracked == true) {
             existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
+            
+            Blob newBlob = existingBlob;
+            newBlob.centerPositions.push_back(newBlob.predictedNextPosition);
+
+            addBlobToExistingBlobs(newBlob, existingBlobs, index); // if not found, update position with the predicted one, because maybe blob is temporary lost
+            existingBlobs[index].blnCurrentMatchFoundOrNewBlob = false;
         }
 
         if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 5) {
@@ -336,6 +352,10 @@ int main() {
     char chCheckForEscKey = 0;
     bool blnFirstFrame = true;
     int frameCount = 0;
+    double learning_rate = 0.1;
+
+    Ptr<BackgroundSubtractor> pMOG;
+    pMOG = createBackgroundSubtractorMOG2();
 
     IBGS *bgs;
     bgs = new AdaptiveBackgroundLearning;
@@ -347,7 +367,7 @@ int main() {
         // Clone the first frame
         cv::Mat imgFrameCopy = imgFrame.clone();
 
-        cv::Mat imgDifference, imgThresh, mask, mask1, backgroundModel;
+        cv::Mat imgDifference, imgThresh, mask, mask1, backgroundModel, backgroundModel1;
 
         // Conver to YUV     
         cv::cvtColor(imgFrameCopy, imgFrameCopy, CV_BGR2YUV);
@@ -356,8 +376,14 @@ int main() {
         split(imgFrameCopy, channels);
         imgFrameCopy = channels[0];
 
+        pMOG -> apply(imgFrameCopy, mask1, learning_rate);
+
+        pMOG -> getBackgroundImage(backgroundModel);
+
+        cv::absdiff(imgFrameCopy, backgroundModel, imgFrameCopy);
+
         // Process the Adaptive Background Learning
-        bgs -> process(imgFrameCopy, mask, backgroundModel);
+        bgs -> process(imgFrameCopy, mask, backgroundModel1);
 
         // Define structuring elements
         cv::Mat structuringElement3x3 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
@@ -366,7 +392,7 @@ int main() {
         
         // Apply erosion in order to eliminate the noise, and dilation to increase the blobs
         cv::erode(mask, mask, structuringElement3x3);
-        cv::erode(mask, mask, structuringElement3x3);
+        //cv::erode(mask, mask, structuringElement3x3);
         cv::dilate(mask, mask, structuringElement19x19);
 
         // Apply a closing operation
@@ -439,10 +465,10 @@ int main() {
         cv::line(imgFrame, upperLine[0], upperLine[1], SCALAR_RED, 2);
         cv::line(imgFrame, lowerLine[0], lowerLine[1], SCALAR_RED, 2);
 
-        cv::resize(imgFrame, imgFrame, cv::Size(), 0.3, 0.3);
-        cv::imshow("imgFrame", imgFrame);
-        cv::resize(mask, mask, cv::Size(), 0.3, 0.3);
-        cv::imshow("mask", mask);
+        cv::resize(imgFrame, imgFrame, cv::Size(), 0.4, 0.4);
+        cv::imshow("imgFrame", imgFrame);/*
+        cv::resize(mask, mask, cv::Size(), 0.4, 0.4);
+        cv::imshow("mask", mask);*/
         
         if ((capVideo.get(CV_CAP_PROP_POS_FRAMES) + 1) < capVideo.get(CV_CAP_PROP_FRAME_COUNT)) {
             capVideo.read(imgFrame);
