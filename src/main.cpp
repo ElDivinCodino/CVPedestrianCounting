@@ -291,6 +291,7 @@ void drawPedestrianCountOnImage(int &pedestrianExitingCount, int &pedestrianEnte
 
 int main() {
     cv::VideoCapture capVideo;
+    cv::VideoWriter newVideo;
 
     cv::Mat imgFrame;
     std::vector<Blob> blobs;
@@ -310,6 +311,7 @@ int main() {
     int pedestrianEnteringLowerCount = 0;
 
     capVideo.open("../Assignment/res/video.mov");
+    newVideo.open("../Assignment/out/video.avi", CV_FOURCC('X','2','6','4'), 30, cv::Size(capVideo.get(CV_CAP_PROP_FRAME_WIDTH), capVideo.get(CV_CAP_PROP_FRAME_HEIGHT)), true);
 
     if (!capVideo.isOpened()) {                                                 // if unable to open video file
         std::cout << "error reading video file" << std::endl << std::endl;      // show error message
@@ -349,7 +351,6 @@ int main() {
     lowerLine[1].x = imgFrame.size().width*4/7;
     lowerLine[1].y = imgFrame.size().height*19/20;
 
-    char chCheckForEscKey = 0;
     bool blnFirstFrame = true;
     int frameCount = 0;
     double learning_rate = 0.1;
@@ -360,7 +361,7 @@ int main() {
     IBGS *bgs;
     bgs = new AdaptiveBackgroundLearning;
 
-    while (capVideo.isOpened() && chCheckForEscKey != 27) {
+    while (capVideo.isOpened()) {
 
         std::vector<Blob> currentFrameBlobs;
 
@@ -465,10 +466,9 @@ int main() {
         cv::line(imgFrame, upperLine[0], upperLine[1], SCALAR_RED, 2);
         cv::line(imgFrame, lowerLine[0], lowerLine[1], SCALAR_RED, 2);
 
+        newVideo.write(imgFrame);
         cv::resize(imgFrame, imgFrame, cv::Size(), 0.4, 0.4);
-        cv::imshow("imgFrame", imgFrame);/*
-        cv::resize(mask, mask, cv::Size(), 0.4, 0.4);
-        cv::imshow("mask", mask);*/
+        cv::imshow("imgFrame", imgFrame);
         
         if ((capVideo.get(CV_CAP_PROP_POS_FRAMES) + 1) < capVideo.get(CV_CAP_PROP_FRAME_COUNT)) {
             capVideo.read(imgFrame);
@@ -489,6 +489,12 @@ int main() {
         frameCount++;
 
         waitKey(1);
+
+        if (waitKey(10) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+        {
+            cout << "esc key is pressed by user" << endl;
+            break; 
+        }
     }
 
 	return 0;
