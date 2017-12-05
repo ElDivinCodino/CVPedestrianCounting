@@ -44,12 +44,12 @@ void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrameCopy) {
         if (blobs[i].blnStillBeingTracked == true) {
             cv::rectangle(imgFrameCopy, blobs[i].currentBoundingRect, SCALAR_RED, 2);
 
-            int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
+            /*int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
             double dblFontScale = 2.0;
             int intFontThickness = (int)std::round(dblFontScale * 1.0);
 
             cv::putText(imgFrameCopy, std::to_string(blobs[i].centerPositions.size()), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
-        }
+        */}
     }
 }
 
@@ -116,7 +116,7 @@ void matchCurrentFrameBlobsToExistingBlobs(std::vector<Blob> &existingBlobs, std
             }
         }
 
-        if (dblLeastDistance < currentFrameBlob.dblCurrentDiagonalSize * 2) {
+        if (dblLeastDistance < currentFrameBlob.dblCurrentDiagonalSize) {
             addBlobToExistingBlobs(currentFrameBlob, existingBlobs, intIndexOfLeastDistance);
         }
         else {
@@ -125,20 +125,10 @@ void matchCurrentFrameBlobsToExistingBlobs(std::vector<Blob> &existingBlobs, std
 
     }
 
-    int index = -1;
-
     for (auto &existingBlob : existingBlobs) {
-        
-        index++;
 
-        if (existingBlob.blnCurrentMatchFoundOrNewBlob == false && existingBlob.blnStillBeingTracked == true) {
+        if (existingBlob.blnCurrentMatchFoundOrNewBlob == false) {
             existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
-            
-            Blob newBlob = existingBlob;
-            newBlob.centerPositions.push_back(newBlob.predictedNextPosition);
-
-            addBlobToExistingBlobs(newBlob, existingBlobs, index); // if not found, update position with the predicted one, because maybe blob is temporary lost
-            existingBlobs[index].blnCurrentMatchFoundOrNewBlob = false;
         }
 
         if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 5) {
@@ -318,7 +308,9 @@ int main() {
         return(0);                                                              // and exit program
     }
 
-    if (capVideo.get(CV_CAP_PROP_FRAME_COUNT) < 2) {
+    int totalFramesNum = capVideo.get(CV_CAP_PROP_FRAME_COUNT);
+
+    if (totalFramesNum < 2) {
         std::cout << "error: video file must have at least two frames";
         return(0);
     }
@@ -335,15 +327,15 @@ int main() {
     
     // Right line 
     rightLine[0].x = imgFrame.size().width*9/10;
-    rightLine[0].y = imgFrame.size().height*4/9;
+    rightLine[0].y = imgFrame.size().height*5/11;
     rightLine[1].x = imgFrame.size().width*9/10;
-    rightLine[1].y = imgFrame.size().height*4/7;
+    rightLine[1].y = imgFrame.size().height*3/5;
 
     // Upper lines 
     upperLine[0].x = imgFrame.size().width/3;
-    upperLine[0].y = imgFrame.size().height*1/9;
+    upperLine[0].y = imgFrame.size().height*1/6;
     upperLine[1].x = imgFrame.size().width*2/3;
-    upperLine[1].y = imgFrame.size().height*1/9;
+    upperLine[1].y = imgFrame.size().height*1/6;
 
     // Lower line 
     lowerLine[0].x = imgFrame.size().width/3;
@@ -356,7 +348,7 @@ int main() {
     double learning_rate = 0.1;
 
     Ptr<BackgroundSubtractor> pMOG;
-    pMOG = createBackgroundSubtractorMOG2();
+    pMOG = createBackgroundSubtractorMOG2(500, 50, false);
 
     IBGS *bgs;
     bgs = new AdaptiveBackgroundLearning;
@@ -467,8 +459,9 @@ int main() {
         cv::line(imgFrame, lowerLine[0], lowerLine[1], SCALAR_RED, 2);
 
         newVideo.write(imgFrame);
-        cv::resize(imgFrame, imgFrame, cv::Size(), 0.4, 0.4);
-        cv::imshow("imgFrame", imgFrame);
+        std::cout << "Computing " << frameCount << " frame of " << totalFramesNum << " total frames" << endl;
+        //cv::resize(imgFrame, imgFrame, cv::Size(), 0.4, 0.4);
+        //cv::imshow("imgFrame", imgFrame);
         
         if ((capVideo.get(CV_CAP_PROP_POS_FRAMES) + 1) < capVideo.get(CV_CAP_PROP_FRAME_COUNT)) {
             capVideo.read(imgFrame);
