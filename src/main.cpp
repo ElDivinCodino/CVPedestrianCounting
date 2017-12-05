@@ -43,13 +43,7 @@ void drawBlobInfoOnImage(std::vector<Blob> &blobs, cv::Mat &imgFrameCopy) {
 
         if (blobs[i].blnStillBeingTracked == true) {
             cv::rectangle(imgFrameCopy, blobs[i].currentBoundingRect, SCALAR_RED, 2);
-
-            /*int intFontFace = CV_FONT_HERSHEY_SIMPLEX;
-            double dblFontScale = 2.0;
-            int intFontThickness = (int)std::round(dblFontScale * 1.0);
-
-            cv::putText(imgFrameCopy, std::to_string(blobs[i].centerPositions.size()), blobs[i].centerPositions.back(), intFontFace, dblFontScale, SCALAR_GREEN, intFontThickness);
-        */}
+        }
     }
 }
 
@@ -281,7 +275,7 @@ void drawPedestrianCountOnImage(int &pedestrianExitingCount, int &pedestrianEnte
 
 int main() {
     cv::VideoCapture capVideo;
-    cv::VideoWriter newVideo;
+    //cv::VideoWriter newVideo;
 
     cv::Mat imgFrame;
     std::vector<Blob> blobs;
@@ -301,7 +295,7 @@ int main() {
     int pedestrianEnteringLowerCount = 0;
 
     capVideo.open("../Assignment/res/video.mov");
-    newVideo.open("../Assignment/out/video.avi", CV_FOURCC('X','2','6','4'), 30, cv::Size(capVideo.get(CV_CAP_PROP_FRAME_WIDTH), capVideo.get(CV_CAP_PROP_FRAME_HEIGHT)), true);
+    //newVideo.open("../Assignment/out/video.avi", CV_FOURCC('X','2','6','4'), 30, cv::Size(capVideo.get(CV_CAP_PROP_FRAME_WIDTH), capVideo.get(CV_CAP_PROP_FRAME_HEIGHT)), true);
 
     if (!capVideo.isOpened()) {                                                 // if unable to open video file
         std::cout << "error reading video file" << std::endl << std::endl;      // show error message
@@ -458,10 +452,10 @@ int main() {
         cv::line(imgFrame, upperLine[0], upperLine[1], SCALAR_RED, 2);
         cv::line(imgFrame, lowerLine[0], lowerLine[1], SCALAR_RED, 2);
 
-        newVideo.write(imgFrame);
-        std::cout << "Computing " << frameCount << " frame of " << totalFramesNum << " total frames" << endl;
-        //cv::resize(imgFrame, imgFrame, cv::Size(), 0.4, 0.4);
-        //cv::imshow("imgFrame", imgFrame);
+        //newVideo.write(imgFrame);
+        //std::cout << "Computing " << frameCount << " frame of " << totalFramesNum << " total frames" << endl;
+        cv::resize(imgFrame, imgFrame, cv::Size(), 0.4, 0.4);
+        cv::imshow("imgFrame", imgFrame);
         
         if ((capVideo.get(CV_CAP_PROP_POS_FRAMES) + 1) < capVideo.get(CV_CAP_PROP_FRAME_COUNT)) {
             capVideo.read(imgFrame);
