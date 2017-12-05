@@ -12,8 +12,8 @@ git clone https://github.com/ElDivinCodino/CVPedestrianCounting.git
 
 ---
 
-In this project, I have tried several algorithms in order to do a satisfying traking of the cyclists and pedestrians.
-In the end I found that it was a hard job without background subtraction.
+In this project I have tried several algorithms in order to do a satisfying traking of cyclists and pedestrians.
+In the end I found that it was a job hard to achieve without background subtraction.
 For this reason I decided to mix a performing background subtraction algorithm, as MOG2, set with a high threshold in order to delete the biggest noise, and an algorithm able to recognize pretty well the elements from the remaining background, found at https://github.com/andrewssobral/bgslibrary.
 
 Unfortunately during the tuning of the parameters I understood that this solution is very sensitive, and changing slightly a relevant variable could make the code recognize better the pedestrians but introducing also lot of noise at the same time.
@@ -30,6 +30,6 @@ In the root folder there is a Makefile, where all the dependencies are included.
 * In order to compile the code just run the `make` command from terminal.
 * To execute the code run `./main`.
 
-## Recorder video
+## Recorded video
 
-A video showing how the code performs can be found at https://drive.google.com/open?id=18sfNGjN3pMVY1UqovKRmif4TMGAHA9ha
+A video showing how the code performs can be found at https://drive.google.com/file/d/18sfNGjN3pMVY1UqovKRmif4TMGAHA9ha/view?usp=sharing
